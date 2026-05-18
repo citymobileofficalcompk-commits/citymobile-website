@@ -49,6 +49,8 @@ function AdminOffers() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedOffer, setSelectedOffer] = useState<any>(null);
 
+  const [hasProductIdsCol, setHasProductIdsCol] = useState(true);
+
   const fetchOffers = async () => {
     setIsLoading(true);
     try {
@@ -59,12 +61,23 @@ function AdminOffers() {
 
       if (error) throw error;
       setOffers(data || []);
+
+      if (data && data.length > 0) {
+        setHasProductIdsCol('product_ids' in data[0]);
+      } else {
+        const { error: probeError } = await supabase
+          .from('offers')
+          .select('product_ids')
+          .limit(1);
+        setHasProductIdsCol(!probeError);
+      }
     } catch (error: any) {
       toast.error(error.message || 'Failed to fetch offers');
     } finally {
       setIsLoading(false);
     }
   };
+
 
   useEffect(() => {
     fetchOffers();
@@ -116,6 +129,28 @@ function AdminOffers() {
           Create New Offer
         </button>
       </div>
+
+      {!hasProductIdsCol && (
+        <div className="bg-amber-500/10 border border-amber-500/20 rounded-[2rem] p-6 text-amber-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4 animate-in fade-in duration-300">
+          <div>
+            <h4 className="font-extrabold text-sm flex items-center gap-2">
+              ⚠️ Database Migration Pending
+            </h4>
+            <p className="text-xs text-amber-700 font-semibold mt-1">
+              To enable attaching products to campaigns, you must add the <code className="bg-amber-500/20 px-1.5 py-0.5 rounded font-mono font-bold text-[10px]">product_ids</code> column to your <code className="bg-amber-500/20 px-1.5 py-0.5 rounded font-mono font-bold text-[10px]">offers</code> table.
+            </p>
+          </div>
+          <button 
+            onClick={() => {
+              navigator.clipboard.writeText("ALTER TABLE offers ADD COLUMN IF NOT EXISTS product_ids text[] DEFAULT '{}';");
+              toast.success("Migration SQL copied to clipboard!");
+            }}
+            className="flex-shrink-0 bg-amber-500/20 hover:bg-amber-500/30 text-amber-900 px-4 py-2 rounded-full font-bold text-xs uppercase tracking-wider transition-all"
+          >
+            Copy SQL Code
+          </button>
+        </div>
+      )}
 
       {/* Offers Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
@@ -200,12 +235,15 @@ function AdminOffers() {
         onClose={() => setIsModalOpen(false)}
         offer={selectedOffer}
         onSuccess={fetchOffers}
+        hasProductIdsCol={hasProductIdsCol}
       />
     </div>
+
   );
 }
 
-function OfferModal({ isOpen, onClose, offer, onSuccess }: any) {
+function OfferModal({ isOpen, onClose, offer, onSuccess, hasProductIdsCol = true }: any) {
+
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     title: '',
@@ -216,8 +254,10 @@ function OfferModal({ isOpen, onClose, offer, onSuccess }: any) {
     end_date: '',
     target_link: '',
     image_url: '' as any,
-    is_active: true
+    is_active: true,
+    product_ids: [] as string[]
   });
+
 
   const categories = [
     "New Mobile", "Used Mobile", "Tablet", "iPod", "Watch",
@@ -237,14 +277,35 @@ function OfferModal({ isOpen, onClose, offer, onSuccess }: any) {
         end_date: offer.end_date ? new Date(offer.end_date).toISOString().slice(0, 16) : '',
         target_link: offer.target_link || '',
         image_url: offer.image_url || '',
-        is_active: offer.is_active ?? true
+        is_active: offer.is_active ?? true,
+        product_ids: offer.product_ids || []
       });
     } else {
       setFormData({
-        title: '', subtitle: '', category: 'New Mobile', discount_badge: '', discount_text: '', end_date: '', target_link: '', image_url: '', is_active: true
+        title: '', subtitle: '', category: 'New Mobile', discount_badge: '', discount_text: '', end_date: '', target_link: '', image_url: '', is_active: true, product_ids: []
       });
     }
   }, [offer, isOpen]);
+
+  const [allProducts, setAllProducts] = useState<any[]>([]);
+  const [productSearch, setProductSearch] = useState('');
+
+  useEffect(() => {
+    const fetchActiveProducts = async () => {
+      const { data, error } = await supabase
+        .from('products')
+        .select('id, name, category, is_active')
+        .eq('is_active', true)
+        .order('name', { ascending: true });
+      if (!error && data) {
+        setAllProducts(data);
+      }
+    };
+    if (isOpen) {
+      fetchActiveProducts();
+    }
+  }, [isOpen]);
+
 
   if (!isOpen) return null;
 
@@ -273,7 +334,22 @@ function OfferModal({ isOpen, onClose, offer, onSuccess }: any) {
         finalImageUrl = publicUrl;
       }
 
-      const payload = { ...formData, image_url: finalImageUrl };
+      const payload: any = { 
+        title: formData.title,
+        subtitle: formData.subtitle,
+        category: formData.category,
+        discount_badge: formData.discount_badge,
+        discount_text: formData.discount_text,
+        end_date: formData.end_date ? new Date(formData.end_date).toISOString() : null,
+        target_link: formData.target_link,
+        image_url: finalImageUrl,
+        is_active: formData.is_active
+      };
+
+      if (hasProductIdsCol) {
+        payload.product_ids = formData.product_ids;
+      }
+
 
       const { error } = offer
         ? await supabase.from('offers').update(payload).eq('id', offer.id)
@@ -294,13 +370,14 @@ function OfferModal({ isOpen, onClose, offer, onSuccess }: any) {
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-[#000B29]/60 backdrop-blur-sm" onClick={onClose}></div>
-      <div className="bg-white w-full max-w-xl rounded-[3rem] shadow-2xl relative z-10 overflow-hidden animate-in zoom-in-95">
-        <div className="px-10 py-8 border-b border-slate-100 flex items-center justify-between">
+      <div className="bg-white w-full max-w-2xl rounded-[3rem] shadow-2xl relative z-10 overflow-hidden max-h-[90vh] flex flex-col animate-in zoom-in-95">
+        <div className="px-10 py-8 border-b border-slate-100 flex items-center justify-between flex-shrink-0">
           <h2 className="text-2xl font-black text-[#001C4B]">{offer ? 'Edit Offer' : 'New Offer'}</h2>
           <button onClick={onClose} className="p-2 hover:bg-slate-50 rounded-xl"><Plus className="w-6 h-6 rotate-45" /></button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-10 space-y-6">
+        <form onSubmit={handleSubmit} className="p-10 space-y-6 overflow-y-auto flex-1">
+
           <div className="space-y-4">
             <div className="relative h-40 bg-slate-50 rounded-3xl overflow-hidden group cursor-pointer border-2 border-dashed border-slate-200 hover:border-cyan-400 transition-all">
               {formData.image_url ? (
@@ -359,7 +436,79 @@ function OfferModal({ isOpen, onClose, offer, onSuccess }: any) {
               <input placeholder="Badge (e.g. -20%)" value={formData.discount_badge} onChange={e => setFormData({ ...formData, discount_badge: e.target.value })} className="px-6 py-4 bg-slate-50 rounded-2xl text-sm font-bold outline-none" />
               <input placeholder="Target Link" value={formData.target_link} onChange={e => setFormData({ ...formData, target_link: e.target.value })} className="px-6 py-4 bg-slate-50 rounded-2xl text-sm font-bold outline-none" />
             </div>
-          </div>
+
+            {/* Attached Products Section */}
+            <div className="space-y-2 border border-slate-100 rounded-3xl p-5 bg-slate-50/50">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block ml-1">
+                Campaign Products {!hasProductIdsCol ? "" : `(${formData.product_ids.length} attached)`}
+              </label>
+              
+              {!hasProductIdsCol ? (
+                <div className="bg-amber-500/10 border border-amber-500/20 rounded-2xl p-4 text-xs text-amber-800 font-semibold text-center">
+                  ⚠️ Product association is disabled until the <code className="bg-amber-500/20 px-1 py-0.5 rounded font-mono font-bold text-[9px]">product_ids</code> column is added to the database.
+                </div>
+              ) : (
+                <>
+
+              
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <input
+                  type="text"
+                  placeholder="Search products to attach..."
+                  value={productSearch}
+                  onChange={(e) => setProductSearch(e.target.value)}
+                  className="w-full pl-9 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-medium outline-none focus:ring-2 focus:ring-cyan-400/50"
+                />
+              </div>
+
+              {/* Display list of filtered products */}
+              <div className="max-h-40 overflow-y-auto border border-slate-100 rounded-2xl bg-white p-2 space-y-1 mt-2">
+                {allProducts
+                  .filter(p => p.name.toLowerCase().includes(productSearch.toLowerCase()))
+                  .map(product => {
+                    const isAttached = formData.product_ids.includes(product.id);
+                    return (
+                      <button
+                        type="button"
+                        key={product.id}
+                        onClick={() => {
+                          const updated = isAttached
+                            ? formData.product_ids.filter(id => id !== product.id)
+                            : [...formData.product_ids, product.id];
+                          setFormData({ ...formData, product_ids: updated });
+                        }}
+                        className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-bold transition-all text-left ${
+                          isAttached
+                            ? 'bg-cyan-500/10 text-cyan-600 border border-cyan-500/20'
+                            : 'hover:bg-slate-50 text-slate-700 border border-transparent'
+                        }`}
+                      >
+                        <div className="flex flex-col">
+                          <span>{product.name}</span>
+                          <span className="text-[9px] text-slate-400 font-semibold">{product.category}</span>
+                        </div>
+                        <div className={`w-4 h-4 rounded-md flex items-center justify-center border transition-all ${
+                          isAttached ? 'bg-cyan-500 border-cyan-500 text-white' : 'border-slate-300 bg-white'
+                        }`}>
+                          {isAttached && (
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3 h-3">
+                              <path fillRule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clipRule="evenodd" />
+                            </svg>
+                          )}
+                        </div>
+                      </button>
+                    );
+                  })}
+                {allProducts.filter(p => p.name.toLowerCase().includes(productSearch.toLowerCase())).length === 0 && (
+                  <p className="text-center py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">No matching active products</p>
+                )}
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+
 
           <button type="submit" disabled={isLoading} className="w-full py-4 bg-gradient-to-r from-cyan-400 to-blue-500 text-white font-bold rounded-full shadow-lg flex justify-center items-center gap-2">
             {isLoading ? <Loader2 className="animate-spin w-5 h-5" /> : offer ? 'Update Offer' : 'Create Offer'}

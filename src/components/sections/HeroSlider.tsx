@@ -12,10 +12,11 @@ type Slide = {
   title: string;
   highlight: string;
   tag?: string;
-  cta?: { label: string; to: string };
+  cta?: { label: string; to: string; params?: any };
   align?: "left" | "right";
   overlay?: string;
 };
+
 
 const DEFAULT_SLIDES: Slide[] = [
   {
@@ -78,12 +79,13 @@ export function HeroSlider() {
           title: offer.title || "Special Offer",
           highlight: offer.discount_text || "",
           tag: offer.discount_badge || undefined,
-          cta: offer.target_link ? { label: "Explore Now", to: String(offer.target_link) } : undefined,
+          cta: { label: "Explore Campaign", to: "/offers/$id", params: { id: offer.id } },
           align: i % 2 === 0 ? "left" : "right",
           overlay: i % 2 === 0
             ? "from-black/85 via-black/40 to-transparent"
             : "from-black/30 via-black/10 to-black/70",
         }));
+
         cachedSlides = mappedSlides;
         setSlides(mappedSlides);
       } else {
@@ -213,7 +215,8 @@ export function HeroSlider() {
                     {s.cta && active && (
                       <div className="mt-7 animate-fade-up" style={{ animationDelay: "200ms" }}>
                         <Link
-                          to={s.cta.to}
+                          to={s.cta.to as any}
+                          params={s.cta.params}
                           className="group inline-flex items-center gap-2 h-12 px-7 rounded-2xl bg-white text-slate-900 font-semibold shadow-elevated hover:scale-[1.04] active:scale-95 transition-transform duration-150"
                         >
                           {s.cta.label}
@@ -221,6 +224,7 @@ export function HeroSlider() {
                         </Link>
                       </div>
                     )}
+
                   </div>
                 </div>
               </div>
