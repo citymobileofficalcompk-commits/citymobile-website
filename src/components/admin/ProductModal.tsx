@@ -47,7 +47,7 @@ export function ProductModal({ isOpen, onClose, product, onSuccess }: ProductMod
   const [features, setFeatures] = useState(['']);
 
   const categories = [
-    "New Mobile", "Used Mobile", "Tablet", "iPod", "Watch",
+    "New Mobile", "Used Mobiles", "Used Mobile", "Tablet", "iPod", "Watch",
     "Power Bank", "Hand Free", "Headphones", "Buds", "AirPods",
     "Data Cable", "Adapter", "Games", "Covers", "Glass",
     "3D Sheets", "Speakers", "Mic", "Lights", "Holders"

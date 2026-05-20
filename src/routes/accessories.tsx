@@ -14,7 +14,7 @@ export const Route = createFileRoute("/accessories")({
       .from('products')
       .select('*')
       .eq('is_active', true)
-      .not('category', 'in', '("New Mobile","Used Mobile","Tablet")');
+      .not('category', 'in', '("New Mobile","Used Mobile","Used Mobiles","Tablet","new-mobile","used-mobile")');
     return { products: products || [] };
   },
   component: AccessoriesPage,

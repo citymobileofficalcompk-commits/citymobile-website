@@ -18,12 +18,54 @@ export const Route = createFileRoute("/category/$slug")({
     const category = findCategory(params.slug);
     if (!category) throw notFound();
     
-    const { data: products } = await supabase
+    const catSlug = category.slug.toLowerCase();
+    let query = supabase
       .from('products')
       .select('*')
-      .eq('category', category.name)
-      .eq('is_active', true)
-      .order('created_at', { ascending: false });
+      .eq('is_active', true);
+      
+    if (catSlug === 'mobiles') {
+      query = query.or('category.ilike."new mobile",category.ilike.mobiles,category.ilike.new-mobile,category.ilike.mobile,category.ilike."new mobiles"');
+    } else if (catSlug === 'used-mobiles') {
+      query = query.or('category.ilike."used mobile",category.ilike."used mobiles",category.ilike.used-mobile');
+    } else {
+      const orParts = new Set<string>();
+      const addTerm = (term: string) => {
+        if (!term) return;
+        const clean = term.trim().toLowerCase();
+        if (clean) orParts.add(`category.ilike."${clean}"`);
+      };
+
+      addTerm(category.name);
+      addTerm(category.slug);
+      addTerm(category.name.replace(/[-\s]+/g, ' '));
+      addTerm(category.slug.replace(/[-\s]+/g, ' '));
+      addTerm(category.name.replace(/[-\s]+/g, '-'));
+      addTerm(category.slug.replace(/[-\s]+/g, '-'));
+
+      if (category.name.toLowerCase().endsWith('es')) {
+        addTerm(category.name.slice(0, -2));
+      } else if (category.name.toLowerCase().endsWith('s')) {
+        addTerm(category.name.slice(0, -1));
+      }
+      
+      if (category.slug.toLowerCase().endsWith('es')) {
+        addTerm(category.slug.slice(0, -2));
+      } else if (category.slug.toLowerCase().endsWith('s')) {
+        addTerm(category.slug.slice(0, -1));
+      }
+
+      if (!category.name.toLowerCase().endsWith('s')) {
+        addTerm(category.name + 's');
+      }
+      if (!category.slug.toLowerCase().endsWith('s')) {
+        addTerm(category.slug + 's');
+      }
+
+      query = query.or(Array.from(orParts).join(','));
+    }
+
+    const { data: products } = await query.order('created_at', { ascending: false });
 
     return { category, products: products || [] };
   },

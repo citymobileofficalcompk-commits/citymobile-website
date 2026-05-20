@@ -1,5 +1,6 @@
 export const CATEGORIES = [
   { slug: "mobiles", name: "Mobiles", icon: "Smartphone" },
+  { slug: "used-mobiles", name: "Used Mobiles", icon: "Smartphone" },
   { slug: "laptops", name: "Laptops", icon: "Laptop" },
   { slug: "tablets", name: "Tablets", icon: "Tablet" },
   { slug: "adapter", name: "Adapter", icon: "Plug" },

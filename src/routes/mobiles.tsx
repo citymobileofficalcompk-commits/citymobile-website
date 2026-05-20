@@ -36,7 +36,54 @@ function ShopPage() {
     async function fetchProducts() {
       setIsLoading(true);
       let q = supabase.from('products').select('*').eq('is_active', true);
-      if (active !== "all") q = q.eq('category', active);
+      if (active !== "all") {
+        const activeLower = active.toLowerCase();
+        if (activeLower === "mobiles") {
+          q = q.or('category.ilike."new mobile",category.ilike.mobiles,category.ilike.new-mobile,category.ilike.mobile,category.ilike."new mobiles"');
+        } else if (activeLower === "used mobiles" || activeLower === "used mobile") {
+          q = q.or('category.ilike."used mobile",category.ilike."used mobiles",category.ilike.used-mobile');
+        } else {
+          const category = CATEGORIES.find(c => c.name.toLowerCase() === activeLower);
+          if (category) {
+            const orParts = new Set<string>();
+            const addTerm = (term: string) => {
+              if (!term) return;
+              const clean = term.trim().toLowerCase();
+              if (clean) orParts.add(`category.ilike."${clean}"`);
+            };
+
+            addTerm(category.name);
+            addTerm(category.slug);
+            addTerm(category.name.replace(/[-\s]+/g, ' '));
+            addTerm(category.slug.replace(/[-\s]+/g, ' '));
+            addTerm(category.name.replace(/[-\s]+/g, '-'));
+            addTerm(category.slug.replace(/[-\s]+/g, '-'));
+
+            if (category.name.toLowerCase().endsWith('es')) {
+              addTerm(category.name.slice(0, -2));
+            } else if (category.name.toLowerCase().endsWith('s')) {
+              addTerm(category.name.slice(0, -1));
+            }
+            
+            if (category.slug.toLowerCase().endsWith('es')) {
+              addTerm(category.slug.slice(0, -2));
+            } else if (category.slug.toLowerCase().endsWith('s')) {
+              addTerm(category.slug.slice(0, -1));
+            }
+
+            if (!category.name.toLowerCase().endsWith('s')) {
+              addTerm(category.name + 's');
+            }
+            if (!category.slug.toLowerCase().endsWith('s')) {
+              addTerm(category.slug + 's');
+            }
+
+            q = q.or(Array.from(orParts).join(','));
+          } else {
+            q = q.ilike('category', active);
+          }
+        }
+      }
       if (query.trim()) q = q.ilike('name', `%${query}%`);
       if (filter === "offers") q = q.not('discounted_price', 'is', null);
       q = q.order('created_at', { ascending: false });

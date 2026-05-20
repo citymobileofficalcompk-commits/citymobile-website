@@ -260,7 +260,7 @@ function OfferModal({ isOpen, onClose, offer, onSuccess, hasProductIdsCol = true
 
 
   const categories = [
-    "New Mobile", "Used Mobile", "Tablet", "iPod", "Watch",
+    "New Mobile", "Used Mobiles", "Used Mobile", "Tablet", "iPod", "Watch",
     "Power Bank", "Hand Free", "Headphones", "Buds", "AirPods",
     "Data Cable", "Adapter", "Games", "Covers", "Glass",
     "3D Sheets", "Speakers", "Mic", "Lights", "Holders"
