@@ -10,6 +10,8 @@ interface ReviewModalProps {
   products: any[];
 }
 
+
+
 export function ReviewModal({ isOpen, onClose, onSuccess, products: initialProducts }: ReviewModalProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [availableProducts, setAvailableProducts] = useState<any[]>(initialProducts || []);
@@ -57,7 +59,7 @@ export function ReviewModal({ isOpen, onClose, onSuccess, products: initialProdu
       toast.error("Please select a product");
       return;
     }
-    
+
     setIsLoading(true);
     try {
       // Find product name for snapshotting
@@ -150,9 +152,8 @@ export function ReviewModal({ isOpen, onClose, onSuccess, products: initialProdu
                     key={star}
                     type="button"
                     onClick={() => setFormData({ ...formData, rating: star })}
-                    className={`flex-1 py-2 rounded-xl transition-all flex items-center justify-center ${
-                      formData.rating >= star ? 'text-amber-400 bg-white shadow-sm' : 'text-slate-300 hover:text-slate-400'
-                    }`}
+                    className={`flex-1 py-2 rounded-xl transition-all flex items-center justify-center ${formData.rating >= star ? 'text-amber-400 bg-white shadow-sm' : 'text-slate-300 hover:text-slate-400'
+                      }`}
                   >
                     <Star className={`w-5 h-5 ${formData.rating >= star ? 'fill-current' : ''}`} />
                   </button>
