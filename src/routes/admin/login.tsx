@@ -122,7 +122,7 @@ function AdminLogin() {
         </div>
 
         <p className="text-center text-slate-500 mt-8 text-sm">
-          &copy; {new Date().getFullYear()} City Mobile Lux. All rights reserved.
+          &copy; {new Date().getFullYear()} City Mobile . All rights reserved.
         </p>
       </div>
     </div>
