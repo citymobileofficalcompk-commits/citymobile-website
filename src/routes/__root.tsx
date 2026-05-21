@@ -42,7 +42,7 @@ function NotFoundComponent() {
 
 function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   const router = useRouter();
-  
+
   useEffect(() => {
     console.error('Routing Error:', error);
   }, [error]);
@@ -124,7 +124,7 @@ function RootShell({ children }: { children: React.ReactNode }) {
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   const location = useLocation();
-  const pathname = location.pathname;
+  const pathname = location.pathname.toLowerCase();
   const isAdminPath = pathname.startsWith('/admin');
 
   return (
