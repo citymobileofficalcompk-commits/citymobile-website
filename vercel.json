@@ -5,5 +5,10 @@
     { "src": "/assets/(.*)", "dest": "/client/assets/$1" },
     { "src": "/(favicon.ico|vite.svg|manifest.json)", "dest": "/client/$1" },
     { "src": "/(.*)", "dest": "/api/index" }
-  ]
+  ],
+  "functions": {
+    "api/index.js": {
+      "includeFiles": "dist/server/**"
+    }
+  }
 }
