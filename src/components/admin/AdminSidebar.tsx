@@ -11,7 +11,7 @@ import {
   X,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { supabase } from '@/lib/supabase';
+import { auth } from '@/lib/auth';
 import { toast } from 'sonner';
 
 const menuItems = [
@@ -32,7 +32,7 @@ export function AdminSidebar({ collapsed, onToggle, mobileOpen, onMobileClose }:
   const location = useLocation();
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
+    await auth.signOut();
     toast.success('Logged out successfully');
     window.location.href = '/admin/login';
   };

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
+import { Link } from "@tanstack/react-router";
 import { Flame, Zap, Loader2 } from "lucide-react";
-import { supabase } from "@/lib/supabase";
+import { querySingle } from "@/lib/turso";
 
 function useCountdown(targetIso: string | null) {
   const [t, setT] = useState({ d: 0, h: 0, m: 0, s: 0, expired: false });
@@ -41,20 +42,13 @@ export function DealOfTheDay() {
   useEffect(() => {
     const fetchActiveOffer = async () => {
       try {
-        const { data, error } = await supabase
-          .from('offers')
-          .select('*')
-          .eq('is_active', true)
-          .not('end_date', 'is', null)
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .single();
-
-        if (error) {
-          console.log("No active countdown offer found");
-          setActiveOffer(null);
-        } else {
+        const data = await querySingle(
+          "SELECT * FROM offers WHERE is_active = 1 AND id IS NOT NULL AND end_date IS NOT NULL ORDER BY created_at DESC LIMIT 1"
+        );
+        if (data && data.id) {
           setActiveOffer(data);
+        } else {
+          setActiveOffer(null);
         }
       } catch (err) {
         console.error("Error fetching offer:", err);
@@ -121,10 +115,14 @@ export function DealOfTheDay() {
                 {activeOffer.subtitle || "Limited stock available. Grab yours before the timer hits zero!"}
               </p>
 
-              <button className="inline-flex items-center gap-3 h-14 px-8 rounded-2xl bg-gradient-to-r from-cyan-400 to-blue-500 text-white font-bold shadow-xl shadow-cyan-500/20 hover:scale-[1.05] transition-all group">
+              <Link
+                to="/offers/$id"
+                params={{ id: activeOffer.id }}
+                className="inline-flex items-center gap-3 h-14 px-8 rounded-2xl bg-gradient-to-r from-cyan-400 to-blue-500 text-white font-bold shadow-xl shadow-cyan-500/20 hover:scale-[1.05] transition-all group"
+              >
                 <Zap className="h-5 w-5 fill-current group-hover:animate-pulse" />
                 Shop the Deals
-              </button>
+              </Link>
             </div>
 
             <div className="grid grid-cols-4 gap-3 sm:gap-4">

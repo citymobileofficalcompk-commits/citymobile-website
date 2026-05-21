@@ -31,7 +31,7 @@ export const BRANDS = [
   { name: "Xiaomi", logo: "https://cdn.simpleicons.org/xiaomi/FF6900" },
   { name: "Tecno", logo: "" },
   { name: "Infinix", logo: "" },
-  { name: "Realme", logo: "https://cdn.simpleicons.org/realme/FFC900" },
+  { name: "Realme", logo: "" },
 ];
 
 export type Product = {

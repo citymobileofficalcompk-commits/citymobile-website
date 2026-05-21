@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { X, Star, Loader2, MessageSquare, User, Smartphone } from 'lucide-react';
-import { supabase } from '@/lib/supabase';
+import { query, insertRow } from '@/lib/turso';
 import { toast } from 'sonner';
 
 interface ReviewModalProps {
@@ -25,13 +25,7 @@ export function ReviewModal({ isOpen, onClose, onSuccess, products: initialProdu
   useEffect(() => {
     const fetchAvailableProducts = async () => {
       try {
-        const { data, error } = await supabase
-          .from('products')
-          .select('id, name')
-          .eq('is_active', true)
-          .order('name');
-        
-        if (error) throw error;
+        const data = await query("SELECT id, name FROM products WHERE is_active = 1 ORDER BY name ASC");
         setAvailableProducts(data || []);
       } catch (err) {
         console.error("Error fetching products for review modal:", err);
@@ -82,15 +76,7 @@ export function ReviewModal({ isOpen, onClose, onSuccess, products: initialProdu
 
       console.log("PAYLOAD BEING SENT:", payload);
 
-      const { data, error } = await supabase
-        .from('reviews')
-        .insert([payload]);
-
-      if (error) {
-        console.error("Supabase Insert Error:", error);
-        alert("SUPABASE ERROR: " + JSON.stringify(error));
-        return;
-      }
+      await insertRow('reviews', payload);
 
       toast.success('Review added successfully');
       onSuccess();

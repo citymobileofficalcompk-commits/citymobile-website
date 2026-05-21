@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Quote, Star, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import { REVIEWS } from "@/lib/site-data";
 import { SectionHeader } from "./Categories";
-import { supabase } from "@/lib/supabase";
+import { query } from "@/lib/turso";
 
 export function Reviews() {
   const [i, setI] = useState(0);
@@ -12,13 +12,10 @@ export function Reviews() {
   useEffect(() => {
     async function fetchReviews() {
       try {
-        const { data, error } = await supabase
-          .from('reviews')
-          .select('*')
-          .eq('status', 'published')
-          .order('id', { ascending: false });
+        const data = await query(
+          "SELECT * FROM reviews WHERE status = 'published' ORDER BY id DESC"
+        );
 
-        if (error) throw error;
         if (data && data.length > 0) {
           setReviews(data);
         } else {

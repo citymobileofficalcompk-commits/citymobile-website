@@ -33,7 +33,7 @@ export function Categories() {
   );
 }
 
-export function SectionHeader({ eyebrow, title, subtitle, link }: { eyebrow?: string; title: string; subtitle?: string; link?: string }) {
+export function SectionHeader({ eyebrow, title, subtitle, link, to, search }: { eyebrow?: string; title: string; subtitle?: string; link?: string; to?: string; search?: any }) {
   return (
     <div className="flex items-end justify-between gap-4">
       <div>
@@ -42,9 +42,15 @@ export function SectionHeader({ eyebrow, title, subtitle, link }: { eyebrow?: st
         {subtitle && <p className="mt-1.5 text-sm text-muted-foreground">{subtitle}</p>}
       </div>
       {link && (
-        <button className="hidden sm:inline-flex items-center gap-1 text-sm font-semibold text-primary hover:gap-2 transition-all">
-          {link} <ArrowRight className="h-4 w-4" />
-        </button>
+        to ? (
+          <Link to={to} search={search} className="hidden sm:inline-flex items-center gap-1 text-sm font-semibold text-primary hover:gap-2 transition-all">
+            {link} <ArrowRight className="h-4 w-4" />
+          </Link>
+        ) : (
+          <button className="hidden sm:inline-flex items-center gap-1 text-sm font-semibold text-primary hover:gap-2 transition-all">
+            {link} <ArrowRight className="h-4 w-4" />
+          </button>
+        )
       )}
     </div>
   );

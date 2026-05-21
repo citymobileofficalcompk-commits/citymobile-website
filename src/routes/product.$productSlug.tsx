@@ -3,18 +3,17 @@ import { useEffect, useMemo, useState } from "react";
 import { ArrowLeft, Check, MessageCircle, ShieldCheck, Smartphone, Star, Truck, Loader2, ImageIcon } from "lucide-react";
 import { WHATSAPP } from "@/lib/site-data";
 import { ProductCard } from "@/components/ProductCard";
-import { supabase } from "@/lib/supabase";
+import { query, querySingle } from "@/lib/turso";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/product/$productSlug")({
   loader: async ({ params }) => {
-    const { data: product, error } = await supabase
-      .from('products')
-      .select('*')
-      .eq('id', params.productSlug)
-      .single();
+    const product = await querySingle(
+      'SELECT * FROM products WHERE id = ?',
+      [params.productSlug]
+    );
     
-    if (error || !product) throw notFound();
+    if (!product) throw notFound();
     return { product };
   },
   component: ProductPage,
@@ -38,13 +37,10 @@ function ProductPage() {
 
   useEffect(() => {
     async function fetchRelated() {
-      const { data } = await supabase
-        .from('products')
-        .select('*')
-        .eq('category', p.category)
-        .eq('is_active', true)
-        .neq('id', p.id)
-        .limit(4);
+      const data = await query(
+        'SELECT * FROM products WHERE category = ? AND is_active = 1 AND id != ? LIMIT 4',
+        [p.category, p.id]
+      );
       if (data) setRelated(data);
     }
     fetchRelated();

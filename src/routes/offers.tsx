@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Flame, Sparkles, Tag, ArrowRight, Calendar, Loader2 } from "lucide-react";
 import { useState, useEffect } from "react";
-import { supabase } from "@/lib/supabase";
+import { query } from "@/lib/turso";
 
 export const Route = createFileRoute("/offers")({
   head: () => ({
@@ -21,14 +21,12 @@ function OffersPage() {
     const fetchOffers = async () => {
       setIsLoading(true);
       try {
-        const { data, error } = await supabase
-          .from("offers")
-          .select("*")
-          .eq("is_active", true)
-          .order("created_at", { ascending: false });
+        const data = await query(
+          "SELECT * FROM offers WHERE is_active = 1 AND id IS NOT NULL ORDER BY created_at DESC"
+        );
 
-        if (error) throw error;
-        setOffers(data || []);
+        const activeOffers = (data || []).filter((o: any) => o.id);
+        setOffers(activeOffers);
       } catch (err) {
         console.error("Failed to fetch campaigns:", err);
       } finally {

@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { useState } from 'react';
-import { supabase } from '@/lib/supabase';
+import { auth } from '@/lib/auth';
 import { Mail, Lock, Loader2, Smartphone } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -12,14 +12,16 @@ function AdminLogin() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const navigate = useNavigate();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    setErrorMsg(null);
 
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await auth.signInWithPassword({
         email,
         password,
       });
@@ -29,6 +31,7 @@ function AdminLogin() {
       toast.success('Welcome back, Admin!');
       navigate({ to: '/admin' });
     } catch (error: any) {
+      setErrorMsg(error.message || 'Failed to sign in');
       toast.error(error.message || 'Failed to sign in');
     } finally {
       setIsLoading(false);
@@ -44,7 +47,7 @@ function AdminLogin() {
             <Smartphone className="w-10 h-10 text-cyan-400" />
           </div>
           <h1 className="text-3xl font-bold text-white tracking-tight">
-            City Mobile <span className="text-cyan-400">Lux</span>
+            City Mobile
           </h1>
           <p className="text-slate-400 mt-2">Admin Control Center</p>
         </div>
@@ -56,6 +59,11 @@ function AdminLogin() {
           <div className="absolute -bottom-24 -left-24 w-48 h-48 bg-blue-600/20 blur-[80px] rounded-full"></div>
 
           <form onSubmit={handleLogin} className="space-y-6 relative z-10">
+            {errorMsg && (
+              <div className="p-4 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-200 text-sm font-bold text-center animate-in fade-in duration-300">
+                {errorMsg}
+              </div>
+            )}
             <div className="space-y-2">
               <label className="text-sm font-medium text-slate-300 ml-1">Email Address</label>
               <div className="relative group">

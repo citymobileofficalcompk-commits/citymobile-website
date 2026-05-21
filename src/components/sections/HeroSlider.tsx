@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { Link } from "@tanstack/react-router";
 import { ArrowRight, ChevronLeft, ChevronRight, Sparkles } from "lucide-react";
-import { supabase } from "@/lib/supabase";
+import { query } from "@/lib/turso";
 import slide1 from "@/assets/hero-slide-1.jpg";
 import slide2 from "@/assets/hero-slide-2.jpg";
 import slide3 from "@/assets/hero-slide-3.jpg";
@@ -64,16 +64,11 @@ export function HeroSlider() {
       setIsLoading(true);
     }
     try {
-      const { data, error } = await supabase
-        .from('offers')
-        .select('*')
-        .eq('is_active', true)
-        .order('id', { ascending: false });
+      const data = await query("SELECT * FROM offers WHERE is_active = 1 AND id IS NOT NULL ORDER BY id DESC");
 
-      if (error) throw error;
-
-      if (data && data.length > 0) {
-        const mappedSlides: Slide[] = data.map((offer: any, i: number) => ({
+      const validOffers = (data || []).filter((offer: any) => offer.id);
+      if (validOffers.length > 0) {
+        const mappedSlides: Slide[] = validOffers.map((offer: any, i: number) => ({
           image: offer.image_url || slide1,
           eyebrow: offer.subtitle || "City Mobile Special",
           title: offer.title || "Special Offer",

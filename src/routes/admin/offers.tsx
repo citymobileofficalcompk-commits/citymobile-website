@@ -9,7 +9,7 @@ import {
   Loader2,
   Image as ImageIcon
 } from 'lucide-react';
-import { supabase } from '@/lib/supabase';
+import { query, insertRow, updateRow, deleteRow } from '@/lib/turso';
 import { toast } from 'sonner';
 
 export const Route = createFileRoute('/admin/offers')({
@@ -54,23 +54,9 @@ function AdminOffers() {
   const fetchOffers = async () => {
     setIsLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('offers')
-        .select('*')
-        .order('id', { ascending: false });
-
-      if (error) throw error;
+      const data = await query('SELECT * FROM offers ORDER BY id DESC');
       setOffers(data || []);
-
-      if (data && data.length > 0) {
-        setHasProductIdsCol('product_ids' in data[0]);
-      } else {
-        const { error: probeError } = await supabase
-          .from('offers')
-          .select('product_ids')
-          .limit(1);
-        setHasProductIdsCol(!probeError);
-      }
+      setHasProductIdsCol(true);
     } catch (error: any) {
       toast.error(error.message || 'Failed to fetch offers');
     } finally {
@@ -85,12 +71,7 @@ function AdminOffers() {
 
   const handleToggleStatus = async (id: string, currentStatus: boolean) => {
     try {
-      const { error } = await supabase
-        .from('offers')
-        .update({ is_active: !currentStatus })
-        .eq('id', id);
-
-      if (error) throw error;
+      await updateRow('offers', id, { is_active: !currentStatus });
       toast.success(`Offer ${!currentStatus ? 'activated' : 'disabled'} successfully`);
       fetchOffers();
     } catch (error: any) {
@@ -101,12 +82,7 @@ function AdminOffers() {
   const handleDelete = async (id: string) => {
     if (!window.confirm('Are you sure you want to delete this offer?')) return;
     try {
-      const { error } = await supabase
-        .from('offers')
-        .delete()
-        .eq('id', id);
-
-      if (error) throw error;
+      await deleteRow('offers', id);
       toast.success('Offer deleted successfully');
       fetchOffers();
     } catch (error: any) {
@@ -292,13 +268,11 @@ function OfferModal({ isOpen, onClose, offer, onSuccess, hasProductIdsCol = true
 
   useEffect(() => {
     const fetchActiveProducts = async () => {
-      const { data, error } = await supabase
-        .from('products')
-        .select('id, name, category, is_active')
-        .eq('is_active', true)
-        .order('name', { ascending: true });
-      if (!error && data) {
-        setAllProducts(data);
+      try {
+        const data = await query('SELECT id, name, category, is_active FROM products WHERE is_active = 1 ORDER BY name ASC');
+        setAllProducts(data || []);
+      } catch (err: any) {
+        console.error("Failed to fetch active products", err);
       }
     };
     if (isOpen) {
@@ -318,20 +292,13 @@ function OfferModal({ isOpen, onClose, offer, onSuccess, hasProductIdsCol = true
 
       if (formData.image_url instanceof File) {
         const file = formData.image_url;
-        const fileExt = file.name.split('.').pop();
-        const fileName = `offer-${Date.now()}.${fileExt}`;
-
-        const { error: uploadError } = await supabase.storage
-          .from('shop-images')
-          .upload(fileName, file);
-
-        if (uploadError) throw uploadError;
-
-        const { data: { publicUrl } } = supabase.storage
-          .from('shop-images')
-          .getPublicUrl(fileName);
-
-        finalImageUrl = publicUrl;
+        const reader = new FileReader();
+        const base64Promise = new Promise<string>((resolve, reject) => {
+          reader.onload = () => resolve(reader.result as string);
+          reader.onerror = (err) => reject(err);
+        });
+        reader.readAsDataURL(file);
+        finalImageUrl = await base64Promise;
       }
 
       const payload: any = { 
@@ -351,11 +318,11 @@ function OfferModal({ isOpen, onClose, offer, onSuccess, hasProductIdsCol = true
       }
 
 
-      const { error } = offer
-        ? await supabase.from('offers').update(payload).eq('id', offer.id)
-        : await supabase.from('offers').insert([payload]);
-
-      if (error) throw error;
+      if (offer) {
+        await updateRow('offers', offer.id, payload);
+      } else {
+        await insertRow('offers', payload);
+      }
 
       toast.success(`Offer ${offer ? 'updated' : 'created'} successfully!`);
       onSuccess();

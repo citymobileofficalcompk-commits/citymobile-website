@@ -13,7 +13,7 @@ import {
   TrendingUp
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { supabase } from '@/lib/supabase';
+import { insertRow, updateRow } from '@/lib/turso';
 import { toast } from 'sonner';
 
 import { useRouter } from '@tanstack/react-router';
@@ -107,19 +107,13 @@ export function ProductModal({ isOpen, onClose, product, onSuccess }: ProductMod
       // 2. Handle Image Uploads for new files
       const newImageUrls = await Promise.all(
         newFiles.map(async (file) => {
-          const fileExt = file.name.split('.').pop();
-          const fileName = `${Math.random().toString(36).substring(2)}-${Date.now()}.${fileExt}`;
-          const { error: uploadError } = await supabase.storage
-            .from('shop-images')
-            .upload(fileName, file);
-
-          if (uploadError) throw uploadError;
-
-          const { data: { publicUrl } } = supabase.storage
-            .from('shop-images')
-            .getPublicUrl(fileName);
-
-          return publicUrl;
+          const reader = new FileReader();
+          const base64Promise = new Promise<string>((resolve, reject) => {
+            reader.onload = () => resolve(reader.result as string);
+            reader.onerror = (err) => reject(err);
+          });
+          reader.readAsDataURL(file);
+          return await base64Promise;
         })
       );
 
@@ -144,11 +138,11 @@ export function ProductModal({ isOpen, onClose, product, onSuccess }: ProductMod
         updated_at: new Date().toISOString()
       };
 
-      const { error } = product
-        ? await supabase.from('products').update(payload).eq('id', product.id)
-        : await supabase.from('products').insert([payload]);
-
-      if (error) throw error;
+      if (product) {
+        await updateRow('products', product.id, payload);
+      } else {
+        await insertRow('products', payload);
+      }
 
       toast.success(`Product ${product ? 'updated' : 'added'} successfully!`);
       router.invalidate();

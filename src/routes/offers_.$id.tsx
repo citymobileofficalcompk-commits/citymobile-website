@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { ArrowLeft, Flame, Sparkles, Smartphone, Gift, Calendar } from "lucide-react";
-import { supabase } from "@/lib/supabase";
+import { query, querySingle } from "@/lib/turso";
 import { ProductCard } from "@/components/ProductCard";
 
 export const Route = createFileRoute("/offers_/$id")({
@@ -10,7 +10,7 @@ export const Route = createFileRoute("/offers_/$id")({
 
 function OfferDetailsPage() {
   const { id } = Route.useParams();
-  
+
   // Client-side states for campaign details and relational products data fetching
   const [offer, setOffer] = useState<any>(null);
   const [products, setProducts] = useState<any[]>([]);
@@ -23,13 +23,12 @@ function OfferDetailsPage() {
       setError(null);
       try {
         // 1. Fetch single Offer record
-        const { data: offerData, error: offerError } = await supabase
-          .from("offers")
-          .select("*")
-          .eq("id", id)
-          .maybeSingle();
+        console.log("Fetching Offer ID:", id);
+        const offerData = await querySingle(
+          "SELECT * FROM offers WHERE id = ?",
+          [id]
+        );
 
-        if (offerError) throw offerError;
         if (!offerData) {
           setError("404");
           setIsLoading(false);
@@ -40,15 +39,13 @@ function OfferDetailsPage() {
 
         // 2. Fetch relationally linked Products
         let productsData: any[] = [];
-        if (offerData.product_ids && offerData.product_ids.length > 0) {
-          const { data: campaignProducts, error: productsError } = await supabase
-            .from("products")
-            .select("*")
-            .in("id", offerData.product_ids)
-            .eq("is_active", true);
-
-          if (productsError) throw productsError;
-          productsData = campaignProducts || [];
+        const productIds = (offerData.product_ids || []).filter(Boolean);
+        if (productIds.length > 0) {
+          const placeholders = productIds.map(() => "?").join(", ");
+          productsData = await query(
+            `SELECT * FROM products WHERE id IN (${placeholders}) AND is_active = 1`,
+            productIds
+          );
         }
 
         setProducts(productsData);
@@ -72,10 +69,10 @@ function OfferDetailsPage() {
         <div className="mx-auto max-w-7xl px-4 lg:px-8 space-y-8 animate-pulse">
           {/* Back Link skeleton */}
           <div className="h-5 w-40 bg-slate-200 rounded-full" />
-          
+
           {/* Hero Banner skeleton */}
           <div className="h-80 sm:h-96 w-full bg-slate-200 rounded-[3rem]" />
-          
+
           {/* Product Grid Header skeleton */}
           <div className="space-y-4 pt-6">
             <div className="h-8 w-64 bg-slate-200 rounded-2xl" />
@@ -101,8 +98,8 @@ function OfferDetailsPage() {
         <p className="text-slate-400 text-sm font-semibold max-w-xs">
           This campaign may have expired or does not exist. Check our other promotional events!
         </p>
-        <Link 
-          to="/" 
+        <Link
+          to="/"
           className="mt-6 px-8 py-3 bg-[#001C4B] hover:bg-[#001C4B]/95 text-white font-extrabold text-xs uppercase tracking-widest rounded-full shadow-lg hover:scale-105 active:scale-95 transition-all"
         >
           Return to Homepage
@@ -114,11 +111,11 @@ function OfferDetailsPage() {
   const hasEndDate = offer.end_date ? new Date(offer.end_date) > new Date() : false;
   const formattedDate = offer.end_date
     ? new Date(offer.end_date).toLocaleDateString("en-US", {
-        month: "short",
-        day: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-      })
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    })
     : "";
 
   // Parse percentage discount from campaign discount_text (e.g. "30% OFF") to reflect dynamically on product cards
@@ -172,7 +169,7 @@ function OfferDetailsPage() {
             </div>
 
             <p className="text-xs font-black uppercase tracking-widest text-cyan-400">{offer.category || "Grand Campaign"}</p>
-            
+
             <h1 className="font-display text-4xl sm:text-6xl font-extrabold leading-[1.05] tracking-tight">
               {offer.title}
             </h1>

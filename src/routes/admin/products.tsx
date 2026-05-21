@@ -16,7 +16,7 @@ import { ProductModal } from '@/components/admin/ProductModal';
 import { cn } from '@/lib/utils';
 
 import { useEffect } from 'react';
-import { supabase } from '@/lib/supabase';
+import { query, updateRow, deleteRow } from '@/lib/turso';
 import { toast } from 'sonner';
 
 export const Route = createFileRoute('/admin/products')({
@@ -78,12 +78,7 @@ function AdminProducts() {
   const fetchProducts = async () => {
     setIsLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('products')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
+      const data = await query('SELECT * FROM products ORDER BY created_at DESC');
       setProducts(data || []);
     } catch (error: any) {
       toast.error(error.message || 'Failed to fetch products');
@@ -132,12 +127,7 @@ function AdminProducts() {
     if (!window.confirm('Are you sure you want to delete this product?')) return;
 
     try {
-      const { error } = await supabase
-        .from('products')
-        .delete()
-        .eq('id', id);
-
-      if (error) throw error;
+      await deleteRow('products', id);
       toast.success('Product deleted successfully');
       fetchProducts();
     } catch (error: any) {
@@ -147,12 +137,7 @@ function AdminProducts() {
 
   const handleToggleStatus = async (id: string, currentStatus: boolean) => {
     try {
-      const { error } = await supabase
-        .from('products')
-        .update({ is_active: !currentStatus })
-        .eq('id', id);
-
-      if (error) throw error;
+      await updateRow('products', id, { is_active: !currentStatus });
       toast.success(`Product ${!currentStatus ? 'activated' : 'disabled'} successfully`);
       fetchProducts();
     } catch (error: any) {

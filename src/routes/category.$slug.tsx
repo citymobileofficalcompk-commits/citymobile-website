@@ -2,7 +2,7 @@ import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { ArrowLeft } from "lucide-react";
 import { findCategory } from "@/lib/site-data";
 import { ProductCard } from "@/components/ProductCard";
-import { supabase } from "@/lib/supabase";
+import { query } from "@/lib/turso";
 
 export const Route = createFileRoute("/category/$slug")({
   head: ({ params }) => {
@@ -19,21 +19,21 @@ export const Route = createFileRoute("/category/$slug")({
     if (!category) throw notFound();
     
     const catSlug = category.slug.toLowerCase();
-    let query = supabase
-      .from('products')
-      .select('*')
-      .eq('is_active', true);
+    let sql = "SELECT * FROM products WHERE is_active = 1";
+    const sqlParams: any[] = [];
       
     if (catSlug === 'mobiles') {
-      query = query.or('category.ilike."new mobile",category.ilike.mobiles,category.ilike.new-mobile,category.ilike.mobile,category.ilike."new mobiles"');
+      sql += " AND (category LIKE ? OR category LIKE ? OR category LIKE ? OR category LIKE ? OR category LIKE ?)";
+      sqlParams.push('new mobile', 'mobiles', 'new-mobile', 'mobile', 'new mobiles');
     } else if (catSlug === 'used-mobiles') {
-      query = query.or('category.ilike."used mobile",category.ilike."used mobiles",category.ilike.used-mobile');
+      sql += " AND (category LIKE ? OR category LIKE ? OR category LIKE ?)";
+      sqlParams.push('used mobile', 'used mobiles', 'used-mobile');
     } else {
       const orParts = new Set<string>();
       const addTerm = (term: string) => {
         if (!term) return;
         const clean = term.trim().toLowerCase();
-        if (clean) orParts.add(`category.ilike."${clean}"`);
+        if (clean) orParts.add(clean);
       };
 
       addTerm(category.name);
@@ -62,10 +62,16 @@ export const Route = createFileRoute("/category/$slug")({
         addTerm(category.slug + 's');
       }
 
-      query = query.or(Array.from(orParts).join(','));
+      const termsArray = Array.from(orParts);
+      if (termsArray.length > 0) {
+        const clauses = termsArray.map(() => "category LIKE ?").join(" OR ");
+        sql += ` AND (${clauses})`;
+        sqlParams.push(...termsArray);
+      }
     }
 
-    const { data: products } = await query.order('created_at', { ascending: false });
+    sql += " ORDER BY created_at DESC";
+    const products = await query(sql, sqlParams);
 
     return { category, products: products || [] };
   },

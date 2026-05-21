@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { ProductCard } from "@/components/ProductCard";
-import { supabase } from "@/lib/supabase";
+import { query } from "@/lib/turso";
 
 export const Route = createFileRoute("/accessories")({
   head: () => ({
@@ -10,11 +10,9 @@ export const Route = createFileRoute("/accessories")({
     ],
   }),
   loader: async () => {
-    const { data: products } = await supabase
-      .from('products')
-      .select('*')
-      .eq('is_active', true)
-      .not('category', 'in', '("New Mobile","Used Mobile","Used Mobiles","Tablet","new-mobile","used-mobile")');
+    const products = await query(
+      "SELECT * FROM products WHERE is_active = 1 AND category NOT IN ('New Mobile', 'Used Mobile', 'Used Mobiles', 'Tablet', 'new-mobile', 'used-mobile', 'used mobiles')"
+    );
     return { products: products || [] };
   },
   component: AccessoriesPage,

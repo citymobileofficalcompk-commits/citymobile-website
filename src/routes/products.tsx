@@ -8,11 +8,15 @@ import { z } from "zod";
 import { CATEGORIES } from "@/lib/site-data";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
-const searchSchema = z.object({ q: z.string().optional(), cat: z.string().optional() });
+const searchSchema = z.object({
+  q: z.string().optional(),
+  cat: z.string().optional(),
+  filter: z.string().optional() // 'bestsellers' | 'premium'
+});
 
-export const Route = createFileRoute("/mobiles")({
+export const Route = createFileRoute("/products")({
   validateSearch: searchSchema,
-  component: ShopPage,
+  component: ProductsPage,
 });
 
 const SHOP_CATEGORIES = [
@@ -22,8 +26,8 @@ const SHOP_CATEGORIES = [
 
 type FilterMode = "all" | "offers" | "latest";
 
-function ShopPage() {
-  const { q: initialQ, cat: initialCat } = Route.useSearch();
+function ProductsPage() {
+  const { q: initialQ, cat: initialCat, filter: urlFilter } = Route.useSearch();
   const [queryVal, setQueryVal] = useState(initialQ ?? "");
   const [active, setActive] = useState<string>(initialCat ?? "all");
   const [filter, setFilter] = useState<FilterMode>("all");
@@ -39,6 +43,12 @@ function ShopPage() {
       let sql = "SELECT * FROM products WHERE is_active = 1";
       const params: any[] = [];
       
+      if (urlFilter === "bestsellers") {
+        sql += " AND is_bestseller = 1";
+      } else if (urlFilter === "premium") {
+        sql += " AND is_premium = 1";
+      }
+
       if (active !== "all") {
         const activeLower = active.toLowerCase();
         if (activeLower === "mobiles") {
@@ -119,7 +129,7 @@ function ShopPage() {
     }
     const timer = setTimeout(fetchProducts, 200);
     return () => { cancelled = true; clearTimeout(timer); };
-  }, [active, queryVal, filter]);
+  }, [active, queryVal, filter, urlFilter]);
 
   useEffect(() => {
     const el = tabsRef.current?.querySelector<HTMLButtonElement>(`[data-cat="${active}"]`);
@@ -128,15 +138,23 @@ function ShopPage() {
 
   const activeName = SHOP_CATEGORIES.find((c) => c.slug === active)?.name ?? "All";
 
+  // Determine Title based on current filters
+  let pageTitle = "Products Catalog";
+  if (urlFilter === "bestsellers") {
+    pageTitle = "Best Sellers";
+  } else if (urlFilter === "premium") {
+    pageTitle = "Premium Picks";
+  }
+
   return (
     <div className="pt-24 pb-32 min-h-screen bg-white font-inter">
       <div className="mx-auto max-w-6xl px-4">
-        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-cyan-500">Inventory</p>
+        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-cyan-500">Shop</p>
         <h1 className="mt-2 text-4xl sm:text-6xl font-black text-[#001C4B] tracking-tight">
-          Premium <span className="text-cyan-500 underline decoration-cyan-400/20 underline-offset-8">Store</span>
+          {pageTitle.split(" ")[0]} <span className="text-cyan-500 underline decoration-cyan-400/20 underline-offset-8">{pageTitle.split(" ")[1] || ""}</span>
         </h1>
         <p className="mt-4 text-slate-500 max-w-xl text-sm font-medium">
-          Browse all categories — original PTA-approved products, ready to ship nationwide.
+          Browse original PTA-approved products, ready to ship nationwide.
         </p>
 
         {/* Search + Filter */}
@@ -251,7 +269,7 @@ function ShopPage() {
                 </div>
                 <div>
                   <p className="text-lg font-black text-[#001C4B]">Products Not Found</p>
-                  <p className="mt-1 text-sm text-slate-400 font-medium">No items in this category yet.</p>
+                  <p className="mt-1 text-sm text-slate-400 font-medium">No items matched your filters.</p>
                 </div>
               </div>
             )}

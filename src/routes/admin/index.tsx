@@ -10,7 +10,7 @@ import {
   ArrowDownRight,
   Loader2
 } from 'lucide-react';
-import { supabase } from '@/lib/supabase';
+import { query, countRows } from '@/lib/turso';
 
 export const Route = createFileRoute('/admin/')({
   component: AdminDashboard,
@@ -24,19 +24,19 @@ function AdminDashboard() {
   const fetchData = async () => {
     setIsLoading(true);
     try {
-      const [pRes, rRes, oRes, recRes] = await Promise.all([
-        supabase.from('products').select('*', { count: 'exact', head: true }),
-        supabase.from('reviews').select('*', { count: 'exact', head: true }),
-        supabase.from('offers').select('*', { count: 'exact', head: true }).eq('is_active', true),
-        supabase.from('products').select('name, created_at, category').order('created_at', { ascending: false }).limit(5)
+      const [prodCount, revCount, offCount, recProducts] = await Promise.all([
+        countRows('SELECT COUNT(*) FROM products'),
+        countRows('SELECT COUNT(*) FROM reviews'),
+        countRows('SELECT COUNT(*) FROM offers WHERE is_active = 1'),
+        query('SELECT name, created_at, category FROM products ORDER BY created_at DESC LIMIT 5')
       ]);
 
       setCounts({
-        products: pRes.count || 0,
-        reviews: rRes.count || 0,
-        offers: oRes.count || 0
+        products: prodCount,
+        reviews: revCount,
+        offers: offCount
       });
-      setRecentProducts(recRes.data || []);
+      setRecentProducts(recProducts || []);
     } catch (error) {
       console.error('Dashboard Fetch Error:', error);
     } finally {

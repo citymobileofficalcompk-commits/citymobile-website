@@ -1,11 +1,11 @@
 import { createFileRoute } from '@tanstack/react-router';
 import { useState, useEffect } from 'react';
-import { 
-  Star, 
-  CheckCircle2, 
-  XCircle, 
-  Trash2, 
-  Search, 
+import {
+  Star,
+  CheckCircle2,
+  XCircle,
+  Trash2,
+  Search,
   User,
   MessageCircle,
   Clock,
@@ -13,7 +13,7 @@ import {
   Loader2,
   Plus
 } from 'lucide-react';
-import { supabase } from '@/lib/supabase';
+import { query, updateRow, deleteRow } from '@/lib/turso';
 import { toast } from 'sonner';
 import { ReviewModal } from '@/components/admin/ReviewModal';
 
@@ -33,31 +33,14 @@ function AdminReviews() {
     try {
       console.log("Starting Admin Reviews sync...");
       // Fetch reviews and active products in parallel
-      const [reviewsRes, productsRes] = await Promise.all([
-        supabase
-          .from('reviews')
-          .select('*')
-          .order('created_at', { ascending: false }),
-        supabase
-          .from('products')
-          .select('id, name')
-          .eq('is_active', true)
-          .order('name')
+      const [reviewsData, productsData] = await Promise.all([
+        query('SELECT * FROM reviews ORDER BY created_at DESC'),
+        query('SELECT id, name FROM products WHERE is_active = 1 ORDER BY name')
       ]);
 
-      if (reviewsRes.error) {
-        console.error("ADMIN REVIEWS FETCH ERROR:", reviewsRes.error);
-        throw reviewsRes.error;
-      }
-      
-      if (productsRes.error) {
-        console.error("ADMIN PRODUCTS FETCH ERROR:", productsRes.error);
-        throw productsRes.error;
-      }
-
-      console.log("FETCHED ADMIN REVIEWS:", reviewsRes.data);
-      setReviews(reviewsRes.data || []);
-      setAllProducts(productsRes.data || []);
+      console.log("FETCHED ADMIN REVIEWS:", reviewsData);
+      setReviews(reviewsData || []);
+      setAllProducts(productsData || []);
     } catch (error: any) {
       console.error('CRITICAL MODERATION SYNC FAILURE:', error);
       toast.error(error.message || 'Failed to sync data');
@@ -75,12 +58,7 @@ function AdminReviews() {
 
   const updateReview = async (id: string, updates: any) => {
     try {
-      const { error } = await supabase
-        .from('reviews')
-        .update(updates)
-        .eq('id', id);
-
-      if (error) throw error;
+      await updateRow('reviews', id, updates);
       toast.success('Review updated successfully');
       fetchReviews();
     } catch (error: any) {
@@ -91,30 +69,25 @@ function AdminReviews() {
   const handleDelete = async (id: string) => {
     if (!window.confirm('Permanently delete this review?')) return;
     try {
-      const { error } = await supabase
-        .from('reviews')
-        .delete()
-        .eq('id', id);
-
-      if (error) throw error;
+      await deleteRow('reviews', id);
       toast.success('Review deleted');
       fetchReviews();
     } catch (error: any) {
-      toast.error(error.message);
+      toast.error(error.message || 'Delete failed');
     }
   };
 
   const safeReviews = Array.isArray(reviews) ? reviews : [];
-  
+
   const stats = {
     pending: safeReviews.filter(r => r?.status === 'pending').length,
     published: safeReviews.filter(r => r?.status === 'published').length,
-    avg: safeReviews.length 
-      ? (safeReviews.reduce((acc, r) => acc + (Number(r?.rating) || 0), 0) / safeReviews.length).toFixed(1) 
+    avg: safeReviews.length
+      ? (safeReviews.reduce((acc, r) => acc + (Number(r?.rating) || 0), 0) / safeReviews.length).toFixed(1)
       : '0.0'
   };
 
-  const filteredReviews = safeReviews.filter(r => 
+  const filteredReviews = safeReviews.filter(r =>
     filter === 'all' || r?.status === filter
   );
 
@@ -125,7 +98,7 @@ function AdminReviews() {
           <h1 className="text-3xl font-bold text-[#001C4B]">Moderation Dashboard</h1>
           <p className="text-slate-500 mt-1">Review, prioritize, and approve customer feedback.</p>
         </div>
-        <button 
+        <button
           onClick={() => setIsModalOpen(true)}
           className="px-8 py-3.5 bg-[#001C4B] text-white font-bold rounded-2xl flex items-center justify-center gap-2 hover:bg-cyan-600 transition-all shadow-lg shadow-blue-900/10"
         >
@@ -169,12 +142,11 @@ function AdminReviews() {
         <div className="p-8 border-b border-slate-50 flex items-center justify-between">
           <div className="flex items-center gap-2 bg-slate-50 p-1.5 rounded-full">
             {['all', 'pending', 'published', 'disabled'].map((s) => (
-              <button 
+              <button
                 key={s}
                 onClick={() => setFilter(s)}
-                className={`px-6 py-2.5 text-[10px] font-black uppercase tracking-widest rounded-full transition-all ${
-                  filter === s ? 'bg-white text-[#001C4B] shadow-lg' : 'text-slate-400 hover:text-slate-600'
-                }`}
+                className={`px-6 py-2.5 text-[10px] font-black uppercase tracking-widest rounded-full transition-all ${filter === s ? 'bg-white text-[#001C4B] shadow-lg' : 'text-slate-400 hover:text-slate-600'
+                  }`}
               >
                 {s}
               </button>
@@ -216,7 +188,7 @@ function AdminReviews() {
                         <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">Verified User</p>
                       </div>
                     </div>
-                    
+
                     <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
                       <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Target Product</p>
                       <p className="text-xs font-bold text-cyan-600 line-clamp-1">{review?.product_name || 'N/A'}</p>
@@ -245,14 +217,13 @@ function AdminReviews() {
                       {/* Status Toggle */}
                       <div className="space-y-1.5">
                         <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block ml-1">Live Status</label>
-                        <select 
-                          value={review?.status} 
+                        <select
+                          value={review?.status}
                           onChange={(e) => updateReview(review.id, { status: e.target.value })}
-                          className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest outline-none border-none transition-all ${
-                            review?.status === 'published' ? 'bg-emerald-50 text-emerald-600 ring-1 ring-emerald-500/20' : 
-                            review?.status === 'pending' ? 'bg-amber-50 text-amber-600 ring-1 ring-amber-500/20' : 
-                            'bg-rose-50 text-rose-600 ring-1 ring-rose-500/20'
-                          }`}
+                          className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest outline-none border-none transition-all ${review?.status === 'published' ? 'bg-emerald-50 text-emerald-600 ring-1 ring-emerald-500/20' :
+                            review?.status === 'pending' ? 'bg-amber-50 text-amber-600 ring-1 ring-amber-500/20' :
+                              'bg-rose-50 text-rose-600 ring-1 ring-rose-500/20'
+                            }`}
                         >
                           <option value="pending">Pending</option>
                           <option value="published">Published</option>
@@ -262,7 +233,7 @@ function AdminReviews() {
 
                       {/* Actions */}
                       <div className="ml-auto flex items-center gap-2">
-                        <button 
+                        <button
                           onClick={() => handleDelete(review.id)}
                           className="p-3 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition-all"
                           title="Delete Permanently"
@@ -278,11 +249,11 @@ function AdminReviews() {
           )}
         </div>
       </div>
-      <ReviewModal 
-        isOpen={isModalOpen} 
-        onClose={() => setIsModalOpen(false)} 
-        onSuccess={fetchData} 
-        products={allProducts} 
+      <ReviewModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onSuccess={fetchData}
+        products={allProducts}
       />
     </div>
   );
