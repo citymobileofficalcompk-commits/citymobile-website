@@ -1,9 +1,8 @@
 {
   "version": 2,
+  "outputDirectory": "dist/client",
   "routes": [
     { "handle": "filesystem" },
-    { "src": "/assets/(.*)", "dest": "/client/assets/$1" },
-    { "src": "/(favicon.ico|vite.svg|manifest.json)", "dest": "/client/$1" },
     { "src": "/(.*)", "dest": "/api/index" }
   ],
   "functions": {
