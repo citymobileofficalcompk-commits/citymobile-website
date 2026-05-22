@@ -57,23 +57,45 @@ function AdminReviews() {
   const fetchReviews = fetchData; // maintain compatibility with existing calls
 
   const updateReview = async (id: string, updates: any) => {
+    const mappedUpdates = { ...updates };
+    if (mappedUpdates.status) {
+      mappedUpdates.status = String(mappedUpdates.status).toLowerCase();
+    }
+
+    const previousReviews = [...reviews];
+
+    // Optimistic UI update
+    setReviews(prev =>
+      prev.map(r => (String(r.id) === String(id) ? { ...r, ...mappedUpdates } : r))
+    );
+
     try {
-      await updateRow('reviews', id, updates);
+      await updateRow('reviews', String(id), mappedUpdates);
       toast.success('Review updated successfully');
       fetchReviews();
     } catch (error: any) {
+      console.error('Failed to update review:', error);
       toast.error(error.message || 'Update failed');
+      setReviews(previousReviews);
     }
   };
 
   const handleDelete = async (id: string) => {
     if (!window.confirm('Permanently delete this review?')) return;
+
+    const previousReviews = [...reviews];
+
+    // Optimistic/immediate UI update
+    setReviews(prev => prev.filter(r => String(r.id) !== String(id)));
+
     try {
-      await deleteRow('reviews', id);
+      await deleteRow('reviews', String(id));
       toast.success('Review deleted');
       fetchReviews();
     } catch (error: any) {
+      console.error('Failed to delete review:', error);
       toast.error(error.message || 'Delete failed');
+      setReviews(previousReviews);
     }
   };
 

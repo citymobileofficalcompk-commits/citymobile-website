@@ -66,7 +66,15 @@ export function ReviewModal({ isOpen, onClose, onSuccess, products: initialProdu
       const selectedProduct = availableProducts.find(p => String(p.id) === String(formData.product_id));
       const productName = selectedProduct?.name || 'Unknown Product';
 
+      const generateUUID = () => {
+        if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+          return crypto.randomUUID();
+        }
+        return 'rev-' + Math.random().toString(36).substring(2, 15) + '-' + Date.now().toString(36);
+      };
+
       const payload = {
+        id: generateUUID(),
         product_id: formData.product_id,
         product_name: productName,
         customer_name: formData.customer_name,

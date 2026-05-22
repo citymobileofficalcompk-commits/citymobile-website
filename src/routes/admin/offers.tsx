@@ -301,7 +301,15 @@ function OfferModal({ isOpen, onClose, offer, onSuccess, hasProductIdsCol = true
         finalImageUrl = await base64Promise;
       }
 
+      const generateUUID = () => {
+        if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+          return crypto.randomUUID();
+        }
+        return 'off-' + Math.random().toString(36).substring(2, 15) + '-' + Date.now().toString(36);
+      };
+
       const payload: any = { 
+        id: offer ? offer.id : generateUUID(),
         title: formData.title,
         subtitle: formData.subtitle,
         category: formData.category,

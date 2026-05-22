@@ -43,7 +43,7 @@ export function DealOfTheDay() {
     const fetchActiveOffer = async () => {
       try {
         const data = await querySingle(
-          "SELECT * FROM offers WHERE is_active = 1 AND id IS NOT NULL AND end_date IS NOT NULL ORDER BY created_at DESC LIMIT 1"
+          "SELECT * FROM offers WHERE is_active = 1 AND id IS NOT NULL ORDER BY created_at DESC LIMIT 1"
         );
         if (data && data.id) {
           setActiveOffer(data);
@@ -69,7 +69,7 @@ export function DealOfTheDay() {
     </div>
   );
 
-  if (!activeOffer || t.expired) return null;
+  if (!activeOffer) return null;
 
   const cells = [
     { v: t.d, l: "Days" },
@@ -99,7 +99,7 @@ export function DealOfTheDay() {
           <div className="relative grid gap-10 md:grid-cols-2 items-center">
             <div className="space-y-6">
               <div className="inline-flex items-center gap-2 rounded-full bg-cyan-400/10 border border-cyan-400/20 px-4 py-2 text-xs font-black tracking-widest text-cyan-400 uppercase">
-                <Flame className="h-4 w-4 fill-current" /> FLASH SALE
+                <Flame className="h-4 w-4 fill-current" /> {!activeOffer.end_date || t.expired ? "EXCLUSIVE DEAL" : "FLASH SALE"}
               </div>
 
               <h2 className="font-display text-4xl sm:text-5xl font-black leading-[1.1]">
