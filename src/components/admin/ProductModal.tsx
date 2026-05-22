@@ -141,6 +141,14 @@ export function ProductModal({ isOpen, onClose, product, onSuccess }: ProductMod
       if (product) {
         await updateRow('products', product.id, payload);
       } else {
+        const generateUUID = () => {
+          if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+            return crypto.randomUUID();
+          }
+          return 'prod-' + Math.random().toString(36).substring(2, 15) + '-' + Date.now().toString(36);
+        };
+        payload.id = generateUUID();
+        payload.created_at = new Date().toISOString();
         await insertRow('products', payload);
       }
 
