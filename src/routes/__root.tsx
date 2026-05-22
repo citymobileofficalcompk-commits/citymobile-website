@@ -127,6 +127,7 @@ function RootComponent() {
   const pathname = location.pathname.toLowerCase();
   const isAdminPath = pathname.startsWith('/admin');
 
+
   return (
     <QueryClientProvider client={queryClient}>
       {!isAdminPath && <Header />}

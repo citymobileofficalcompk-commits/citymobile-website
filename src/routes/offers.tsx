@@ -25,6 +25,8 @@ function OffersPage() {
           "SELECT * FROM offers WHERE is_active = 1 AND id IS NOT NULL ORDER BY created_at DESC"
         );
 
+
+
         const activeOffers = (data || []).filter((o: any) => o.id);
         setOffers(activeOffers);
       } catch (err) {
@@ -97,11 +99,11 @@ function OffersPage() {
               const hasEndDate = offer.end_date ? new Date(offer.end_date) > new Date() : false;
               const formattedDate = offer.end_date
                 ? new Date(offer.end_date).toLocaleDateString("en-US", {
-                    month: "short",
-                    day: "numeric",
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })
+                  month: "short",
+                  day: "numeric",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })
                 : "";
 
               return (

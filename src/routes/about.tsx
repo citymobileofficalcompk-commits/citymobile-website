@@ -8,7 +8,7 @@ export const Route = createFileRoute("/about")({
   head: () => ({
     meta: [
       { title: "About City Mobile — Our Story, Mission & Founder" },
-      { name: "description", content: "Learn about City Mobile — Pakistan's trusted premium mobile store, founded by Farrukh Ishaq Mastoi. Quality, trust and customer-first service in Multan & DG Khan." },
+      { name: "description", content: "Learn about City Mobile — Pakistan's trusted premium mobile store, founded by Farrukh Ishaq Mastoi. Quality , trust and customer-first service in Multan & DG Khan." },
       { property: "og:title", content: "About City Mobile" },
       { property: "og:description", content: "The story, mission and people behind City Mobile." },
     ],
@@ -27,7 +27,7 @@ function AboutPage() {
           <div className="flex justify-center mb-6"><Logo size="lg" variant="light" showText={false} /></div>
           <p className="text-center text-xs font-bold uppercase tracking-[0.3em] text-white/70">About Us</p>
           <h1 className="mt-3 text-center font-display text-4xl sm:text-6xl font-extrabold tracking-tight">
-            Built on <span className="text-gradient">trust</span>.<br className="hidden sm:block" /> Driven by service.
+            Built on <span className="text-gradient">TRUST</span>.<br className="hidden sm:block" /> Driven by service.
           </h1>
           <p className="mt-5 mx-auto max-w-2xl text-center text-white/80 leading-relaxed">
             City Mobile is a premium mobile and accessories destination serving thousands of happy customers across South Punjab — combining genuine products, fair pricing and after-sales care that earns lifelong loyalty.
