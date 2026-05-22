@@ -124,13 +124,31 @@ function AdminProducts() {
   };
 
   const handleDelete = async (id: string) => {
+    if (!id) {
+      toast.error('Invalid product ID');
+      return;
+    }
     if (!window.confirm('Are you sure you want to delete this product?')) return;
 
+    // Save previous state for rollback
+    const previousProducts = [...products];
+    // Optimistically update UI state immediately
+    setProducts(prev => prev.filter(p => p.id !== id));
+
     try {
+      // Cascade delete reviews linked to this product
+      await query('DELETE FROM reviews WHERE product_id = ?', [id]);
+      
+      // Delete the product
       await deleteRow('products', id);
+      
       toast.success('Product deleted successfully');
       fetchProducts();
     } catch (error: any) {
+      console.error('Failed to delete product:', error);
+      // Rollback on failure
+      setProducts(previousProducts);
+      alert('Failed to delete product: ' + (error.message || error));
       toast.error(error.message || 'Failed to delete product');
     }
   };
