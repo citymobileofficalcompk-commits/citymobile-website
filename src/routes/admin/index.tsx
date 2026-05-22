@@ -152,9 +152,6 @@ function AdminDashboard() {
                   Moderate Reviews
                 </button>
               </Link>
-              <button className="w-full mt-4 py-4 bg-gradient-to-r from-cyan-400 to-blue-500 shadow-xl shadow-cyan-500/20 rounded-full text-sm font-black uppercase tracking-widest transition-all hover:scale-[1.02] active:scale-[0.98]">
-                Generate Report
-              </button>
             </div>
           </div>
           <div className="mt-8 pt-8 border-t border-white/5 relative z-10">
